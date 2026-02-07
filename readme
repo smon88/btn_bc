@@ -1,0 +1,164 @@
+🔧 Requisitos previos
+
+Asegúrate de tener instalado:
+
+Docker
+
+Docker Compose
+
+(Opcional pero recomendado) Git
+
+Verifica:
+
+docker --version
+docker compose version
+
+🗂️ 1. Crear la carpeta del proyecto
+mkdir laravel-docker
+cd laravel-docker
+
+🐳 2. Crear docker-compose.yml
+
+Este setup trae:
+
+PHP 8.3 + Laravel
+
+Nginx
+
+MySQL
+
+version: "3.9"
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: laravel_app
+    volumes:
+      - .:/var/www
+    working_dir: /var/www
+    networks:
+      - laravel
+
+  web:
+    image: nginx:alpine
+    container_name: laravel_nginx
+    ports:
+      - "8000:80"
+    volumes:
+      - .:/var/www
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - app
+    networks:
+      - laravel
+
+  db:
+    image: mysql:8.0
+    container_name: laravel_db
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_DATABASE: laravel
+      MYSQL_USER: laravel
+      MYSQL_PASSWORD: laravel
+      MYSQL_ROOT_PASSWORD: root
+    volumes:
+      - dbdata:/var/lib/mysql
+    networks:
+      - laravel
+
+networks:
+  laravel:
+
+volumes:
+  dbdata:
+
+🐘 3. Crear Dockerfile (PHP)
+FROM php:8.3-fpm
+
+# Dependencias
+RUN apt-get update && apt-get install -y \
+    zip unzip git curl libpng-dev libonig-dev libxml2-dev \
+    && docker-php-ext-install pdo pdo_mysql mbstring exif pcntl bcmath gd
+
+# Composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+🌐 4. Configurar Nginx
+
+Crea carpetas:
+
+mkdir -p docker/nginx
+
+
+Archivo docker/nginx/default.conf:
+
+server {
+    listen 80;
+    index index.php index.html;
+    root /var/www/public;
+
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    location ~ \.php$ {
+        fastcgi_pass app:9000;
+        fastcgi_index index.php;
+        include fastcgi_params;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+    }
+}
+
+🚀 5. Levantar contenedores
+docker compose up -d --build
+
+🎯 6. Crear el proyecto Laravel
+
+Dentro del contenedor:
+
+docker compose exec app composer create-project laravel/laravel .
+
+🔑 7. Permisos (MUY IMPORTANTE)
+docker compose exec app chmod -R 777 storage bootstrap/cache
+
+🗄️ 8. Configurar .env
+
+Edita .env:
+
+DB_CONNECTION=mysql
+DB_HOST=db
+DB_PORT=3306
+DB_DATABASE=laravel
+DB_USERNAME=laravel
+DB_PASSWORD=laravel
+
+
+Luego:
+
+docker compose exec app php artisan key:generate
+docker compose exec app php artisan migrate
+
+🌍 9. Abrir el proyecto
+
+👉 http://localhost:8000
+
+Si ves la pantalla de Laravel: misión cumplida ✅
+
+🧠 Tips PRO
+
+Ejecutar comandos:
+
+docker compose exec app php artisan make:controller TestController
+
+
+Apagar todo:
+
+  docker compose down
+
+
+Ver logs:
+
+  docker compose logs -f
