@@ -13,8 +13,8 @@
             <div class="footer-logo">
                 <img src="{{ asset('assets/img/logo.svg') }}" alt="Bancolombia">
             </div>
-            <div class="footer-logo-vigilado">
-                <img src="{{ asset('assets/img/logo-vigilado.png') }}" alt="Vigilado">
+            <div class="footer-logo-vi">
+                <img src="{{ asset('assets/img/logo-vi.png') }}" alt="Vigilado">
             </div>
         </div>
 
